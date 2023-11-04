@@ -1,5 +1,9 @@
 package main
 
+import (
+	"github.com/amjadjibon/microservices/auth/cmd"
+)
+
 func main() {
-	// TODO: start auth server
+	cmd.Execute()
 }
