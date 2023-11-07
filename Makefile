@@ -1,6 +1,6 @@
 auth-run:
 	@echo "Running auth service..."
-	@go run cmd/auth/main.go run
+	ENV=dev go run cmd/auth/main.go run
 
 auth-migrate-up:
 	@echo "Running auth service migration up..."

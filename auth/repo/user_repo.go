@@ -10,6 +10,9 @@ import (
 
 type UserRepo interface {
 	CreateUser(ctx context.Context, user *model.User) (*model.User, error)
+	CreateRole(ctx context.Context, role *model.Role) (*model.Role, error)
+	GetUserById(ctx context.Context, userID int) (*model.User, error)
+	GetUserByUsername(ctx context.Context, username string) (*model.User, error)
 }
 
 type RoleRepo interface {
@@ -33,15 +36,17 @@ func NewAuthRepo(db *db.Postgres) AuthRepo {
 }
 
 func (r *authRepo) CreateUser(ctx context.Context, user *model.User) (*model.User, error) {
-	// SQL query to insert a new user into the User table
-	query := `
-		INSERT INTO User (username, name, email, is_verified, gender, password, role_id, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		RETURNING id
-	`
-
-	var userID int
-	err := r.db.Pool.QueryRow(ctx, query,
+	sql, args, err := r.db.Builder.Insert("auth_user").Columns(
+		"username",
+		"name",
+		"email",
+		"is_verified",
+		"gender",
+		"password",
+		"role_id",
+		"created_at",
+		"updated_at",
+	).Values(
 		user.Username,
 		user.Name,
 		user.Email,
@@ -50,13 +55,138 @@ func (r *authRepo) CreateUser(ctx context.Context, user *model.User) (*model.Use
 		user.Password,
 		user.RoleID,
 		time.Now(),
-	).Scan(&userID)
+		time.Now(),
+	).Suffix("RETURNING id").ToSql()
+	if err != nil {
+		return nil, err
+	}
 
+	var userID int
+	err = r.db.Pool.QueryRow(ctx, sql, args...).Scan(&userID)
 	if err != nil {
 		return nil, err
 	}
 
 	user.ID = userID
-
 	return user, nil
+}
+
+func (r *authRepo) CreateRole(ctx context.Context, role *model.Role) (*model.Role, error) {
+	sql, args, err := r.db.Builder.Insert("auth_role").Columns(
+		"name",
+		"created_at",
+		"updated_at",
+	).Values(
+		role.Name,
+		role.CreatedAt,
+		role.UpdatedAt,
+	).Suffix("RETURNING id").ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	var roleID int
+	err = r.db.Pool.QueryRow(ctx, sql, args...).Scan(&roleID)
+	if err != nil {
+		return nil, err
+	}
+
+	role.ID = roleID
+	return role, nil
+}
+
+func (r *authRepo) GetUserById(ctx context.Context, userID int) (*model.User, error) {
+	query, args, err := r.db.Builder.
+		Select("*").
+		From("auth_user").
+		Where("id = ?", userID).
+		Where("deleted_at IS NULL").
+		ToSql()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return r.getUser(ctx, query, args)
+}
+
+func (r *authRepo) GetUserByUsername(ctx context.Context, username string) (*model.User, error) {
+	query, args, err := r.db.Builder.
+		Select("*").
+		From("auth_user").
+		Where("username = ?", username).
+		Where("deleted_at IS NULL").
+		ToSql()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return r.getUser(ctx, query, args)
+}
+
+func (r *authRepo) GetAllUser(ctx context.Context) ([]*model.User, error) {
+	query, _, err := r.db.Builder.
+		Select("*").
+		From("auth_user").
+		Where("deleted_at IS NULL").
+		ToSql()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return r.getUsers(ctx, query)
+}
+
+func (r *authRepo) getUser(ctx context.Context, query string, args []interface{}) (*model.User, error) {
+	var user model.User
+	if err := r.db.Pool.
+		QueryRow(ctx, query, args...).
+		Scan(
+			&user.ID,
+			&user.Username,
+			&user.Name,
+			&user.Email,
+			&user.IsVerified,
+			&user.Gender,
+			&user.Password,
+			&user.RoleID,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+			&user.DeletedAt,
+		); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (r *authRepo) getUsers(ctx context.Context, query string) ([]*model.User, error) {
+	rows, err := r.db.Pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	var users []*model.User
+	for rows.Next() {
+		var user model.User
+		if err = rows.Scan(
+			&user.ID,
+			&user.Username,
+			&user.Name,
+			&user.Email,
+			&user.IsVerified,
+			&user.Gender,
+			&user.Password,
+			&user.RoleID,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+
+	return users, nil
 }

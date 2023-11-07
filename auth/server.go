@@ -5,19 +5,36 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/amjadjibon/microservices/auth/conf"
 	"github.com/amjadjibon/microservices/auth/handler"
 	"github.com/amjadjibon/microservices/auth/repo"
 	"github.com/amjadjibon/microservices/pkg/app"
 	"github.com/amjadjibon/microservices/pkg/db"
+	"github.com/amjadjibon/microservices/pkg/google"
 	"github.com/amjadjibon/microservices/pkg/logger"
+	"github.com/amjadjibon/microservices/pkg/token"
 )
 
+// var (
+// 	googleOauthConfig = oauth2.Config{
+// 		ClientID:     "YOUR_CLIENT_ID",
+// 		ClientSecret: "YOUR_CLIENT_SECRET",
+// 		RedirectURL:  "YOUR_REDIRECT_URI",
+// 		Scopes:       []string{"profile", "email"},
+// 		Endpoint:     google.Endpoint,
+// 	}
+// )
+
 func Run() {
-	logger.InitLogger("info")
-	pg, err := db.NewPostgres("postgres://rootuser:rootpassword@localhost:5432/postgres?sslmode=disable")
+	cfg := conf.GetConfig()
+
+	logger.InitLogger(cfg.LogLevel)
+
+	pg, err := db.NewPostgres(cfg.DatabaseDSN)
 	if err != nil {
 		panic(err)
 	}
+
 	defer pg.Pool.Close()
 
 	err = pg.Pool.Ping(context.Background())
@@ -25,20 +42,51 @@ func Run() {
 		panic(err)
 	}
 
-	addr := ":8080"
+	jwtToken := token.NewToken(
+		cfg.JWTAlgorithm,
+		cfg.JWTSigningKey,
+		cfg.JWTVerifyingKey,
+		cfg.JWTAccessTokenTimeout,
+		cfg.JWTRefreshTokenTimeout,
+	)
 
-	router := Router(repo.NewAuthRepo(pg))
-	app.Run(addr, router)
+	googleOauthConfig := google.NewOAuth2Client(
+		cfg.GoogleOAuthClientID,
+		cfg.GoogleOAuthClientSecret,
+		cfg.GoogleOAuthRedirectURL,
+		cfg.GoogleOAuthScopes,
+	)
+
+	router := Router(repo.NewAuthRepo(pg), jwtToken, googleOauthConfig)
+	app.Run(cfg.Address, router)
 }
 
-func Router(repository repo.AuthRepo) *gin.Engine {
+func getDBConn(cfg conf.Config) *db.Postgres {
+	pg, err := db.NewPostgres(cfg.DatabaseDSN)
+	if err != nil {
+		panic(err)
+	}
+
+	defer pg.Pool.Close()
+
+	err = pg.Pool.Ping(context.Background())
+	if err != nil {
+		panic(err)
+	}
+
+	return pg
+}
+
+func Router(repository repo.AuthRepo, jwtToken token.JwtToken, oauth2Config *google.OAuth2Client) *gin.Engine {
 	router := gin.Default()
-	handlers := handler.NewAuthHandler(repository)
+	handlers := handler.NewAuthHandler(repository, jwtToken, oauth2Config)
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status": "ok",
 		})
 	})
 	router.POST("/user/create", handlers.CreateUser)
+	router.POST("/role/create", handlers.CreateRole)
+	router.POST("/user/login", handlers.LoginUser)
 	return router
 }
