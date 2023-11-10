@@ -9,6 +9,7 @@ import (
 type Role struct {
 	ID        int          `json:"id"`
 	Name      string       `json:"name"`
+	IsDefault bool         `json:"is_default"`
 	CreatedAt time.Time    `json:"created_at"`
 	UpdatedAt time.Time    `json:"updated_at"`
 	DeletedAt sql.NullTime `json:"deleted_at"`

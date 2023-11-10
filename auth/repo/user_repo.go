@@ -13,6 +13,7 @@ type UserRepo interface {
 	CreateRole(ctx context.Context, role *model.Role) (*model.Role, error)
 	GetUserById(ctx context.Context, userID int) (*model.User, error)
 	GetUserByUsername(ctx context.Context, username string) (*model.User, error)
+	GetDefaultRole(ctx context.Context) (*model.Role, error)
 }
 
 type RoleRepo interface {
@@ -72,12 +73,21 @@ func (r *authRepo) CreateUser(ctx context.Context, user *model.User) (*model.Use
 }
 
 func (r *authRepo) CreateRole(ctx context.Context, role *model.Role) (*model.Role, error) {
+	if role.IsDefault {
+		_, err := r.db.Builder.Update("auth_role").Set("is_default", false).Where("is_default = ?", true).ExecContext(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	sql, args, err := r.db.Builder.Insert("auth_role").Columns(
 		"name",
+		"is_default", // If when creating a role, this one is the default one, then set this to true, and set all other roles to false
 		"created_at",
 		"updated_at",
 	).Values(
 		role.Name,
+		role.IsDefault,
 		role.CreatedAt,
 		role.UpdatedAt,
 	).Suffix("RETURNING id").ToSql()
@@ -139,6 +149,20 @@ func (r *authRepo) GetAllUser(ctx context.Context) ([]*model.User, error) {
 	return r.getUsers(ctx, query)
 }
 
+func (r *authRepo) GetDefaultRole(ctx context.Context) (*model.Role, error) {
+	query, args, err := r.db.Builder.
+		Select("*").
+		From("auth_role").
+		Where("is_default = ?", true).
+		ToSql()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return r.getRole(ctx, query, args)
+}
+
 func (r *authRepo) getUser(ctx context.Context, query string, args []interface{}) (*model.User, error) {
 	var user model.User
 	if err := r.db.Pool.
@@ -189,4 +213,22 @@ func (r *authRepo) getUsers(ctx context.Context, query string) ([]*model.User, e
 	}
 
 	return users, nil
+}
+
+func (r *authRepo) getRole(ctx context.Context, query string, args []interface{}) (*model.Role, error) {
+	var role model.Role
+	if err := r.db.Pool.
+		QueryRow(ctx, query, args...).
+		Scan(
+			&role.ID,
+			&role.Name,
+			&role.IsDefault,
+			&role.CreatedAt,
+			&role.UpdatedAt,
+			&role.DeletedAt,
+		); err != nil {
+		return nil, err
+	}
+
+	return &role, nil
 }

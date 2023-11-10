@@ -1,6 +1,7 @@
 package handler
 
 import (
+	error_parser "github.com/amjadjibon/microservices/auth/error"
 	"net/http"
 	"time"
 
@@ -41,6 +42,19 @@ func (a *authHandler) CreateUser(c *gin.Context) {
 		})
 	}
 
+	// Please cache this query
+	defaultRole, err := a.repo.GetDefaultRole(c.Request.Context())
+	if err != nil {
+		return
+	}
+
+	if defaultRole == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":  "DEFAULT_ROLE_NOT_FOUND",
+			"error": err.Error(),
+		})
+		return
+	}
 	// Create a new user
 	user := &model.User{
 		Username:   input.Username,
@@ -48,7 +62,7 @@ func (a *authHandler) CreateUser(c *gin.Context) {
 		Email:      input.Email,
 		IsVerified: false,
 		Gender:     input.Gender,
-		RoleID:     input.RoleID,
+		RoleID:     defaultRole.ID,
 		Password:   pass,
 		CreatedAt:  time.Now().UTC(),
 		UpdatedAt:  time.Now().UTC(),
