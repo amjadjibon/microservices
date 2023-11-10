@@ -1,6 +1,7 @@
 package handler
 
 import (
+	error_parser "github.com/amjadjibon/microservices/auth/error"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -19,9 +20,9 @@ type createRoleOutput struct {
 func (a *authHandler) CreateRole(c *gin.Context) {
 	var input createRoleInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(400, gin.H{
-			"code":  "INVALID_INPUT",
-			"error": err.Error(),
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":   "INVALID_INPUT",
+			"errors": error_parser.ParseError(err),
 		})
 		return
 	}
@@ -36,7 +37,7 @@ func (a *authHandler) CreateRole(c *gin.Context) {
 	// Call the CreateRole method from the repository
 	role, err := a.repo.CreateRole(c.Request.Context(), role)
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":  "CREATE_ROLE_FAILED",
 			"error": err.Error()},
 		)
@@ -47,5 +48,5 @@ func (a *authHandler) CreateRole(c *gin.Context) {
 		ID: role.ID,
 	}
 
-	c.JSON(200, output)
+	c.JSON(http.StatusCreated, output)
 }

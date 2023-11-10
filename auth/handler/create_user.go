@@ -27,8 +27,8 @@ func (a *authHandler) CreateUser(c *gin.Context) {
 	var input CreateUserInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"code":  "INVALID_INPUT",
-			"error": err.Error(),
+			"code":   "INVALID_INPUT",
+			"errors": error_parser.ParseError(err),
 		})
 		return
 	}
