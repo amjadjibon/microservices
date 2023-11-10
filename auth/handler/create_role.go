@@ -2,6 +2,7 @@ package handler
 
 import (
 	error_parser "github.com/amjadjibon/microservices/auth/error"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +15,8 @@ type createRoleInput struct {
 }
 
 type createRoleOutput struct {
-	ID int `json:"id"`
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 func (a *authHandler) CreateRole(c *gin.Context) {
@@ -48,7 +50,8 @@ func (a *authHandler) CreateRole(c *gin.Context) {
 	}
 
 	var output = createRoleOutput{
-		ID: role.ID,
+		ID:   role.ID,
+		Name: role.Name,
 	}
 
 	c.JSON(http.StatusCreated, output)

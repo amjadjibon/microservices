@@ -16,7 +16,6 @@ type CreateUserInput struct {
 	Name     string `json:"name" binding:"required"`
 	Email    string `json:"email" binding:"required"`
 	Gender   string `json:"gender" binding:"required"`
-	RoleID   int    `json:"role_id" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
@@ -34,7 +33,7 @@ func (a *authHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	pass, err := password.HashPassword(input.Password)
+	hashedPassword, err := password.HashPassword(input.Password)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":  "INVALID_INPUT",
@@ -63,7 +62,7 @@ func (a *authHandler) CreateUser(c *gin.Context) {
 		IsVerified: false,
 		Gender:     input.Gender,
 		RoleID:     defaultRole.ID,
-		Password:   pass,
+		Password:   hashedPassword,
 		CreatedAt:  time.Now().UTC(),
 		UpdatedAt:  time.Now().UTC(),
 	}
@@ -71,7 +70,7 @@ func (a *authHandler) CreateUser(c *gin.Context) {
 	// Call the CreateUser method from the repository
 	user, err = a.repo.CreateUser(c.Request.Context(), user)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":  "CREATE_USER_FAILED",
 			"error": err.Error()},
 		)
@@ -82,7 +81,7 @@ func (a *authHandler) CreateUser(c *gin.Context) {
 		ID: user.ID,
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	c.JSON(http.StatusCreated, gin.H{
 		"code":    "SUCCESS",
 		"message": "User created successfully",
 		"data":    output,
