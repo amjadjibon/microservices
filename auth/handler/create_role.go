@@ -18,6 +18,9 @@ type createRoleOutput struct {
 }
 
 func (a *authHandler) CreateRole(c *gin.Context) {
+	// @TODO: only an admin can create a role.
+	// migrations should include at least admin and user role (default)
+
 	var input createRoleInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
