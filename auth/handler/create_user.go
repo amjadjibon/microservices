@@ -42,6 +42,7 @@ func (a *authHandler) CreateUser(c *gin.Context) {
 	}
 
 	// Please cache this query
+	// Instead of caching, we can also hard code it to 2 (user role) or something, which will be made by migrations (default roles)
 	defaultRole, err := a.repo.GetDefaultRole(c.Request.Context())
 	if err != nil {
 		return
