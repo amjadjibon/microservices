@@ -62,7 +62,8 @@ func (a *authHandler) LoginUser(c *gin.Context) {
 
 	// Generate access token
 	payload := map[string]any{
-		"id": user.ID,
+		"id":   user.ID,
+		"role": user.Role,
 	}
 
 	accessToken, err := a.jwtToken.GenerateAccessToken(payload)

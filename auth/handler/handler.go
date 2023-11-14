@@ -12,6 +12,8 @@ type AuthHandler interface {
 	CreateUser(c *gin.Context)
 	LoginUser(c *gin.Context)
 	LoginRefresh(c *gin.Context)
+	GetUser(c *gin.Context)
+	GetAllUser(c *gin.Context)
 }
 
 type authHandler struct {

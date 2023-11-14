@@ -1,9 +1,11 @@
 package token
 
 import (
+	"net/http"
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -53,6 +55,27 @@ func (t *Token) GenerateRefreshToken(payload map[string]any) (string, error) {
 	return jwtToken.SignedString(t.SigningKey)
 }
 
+func (t *Token) VerifyToken(accessToken string) (map[string]any, error) {
+	token, err := jwt.Parse(accessToken, func(token *jwt.Token) (interface{}, error) {
+		return t.SigningKey, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, err
+	}
+
+	payload := token.Claims.(jwt.MapClaims)["payload"].(map[string]any)
+	if payload["type"] != AccessTokenType {
+		return nil, err
+	}
+
+	return payload, nil
+}
+
 func (t *Token) ParseRefreshToken(refreshToken string) (map[string]any, error) {
 	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
 		return t.SigningKey, nil
@@ -72,6 +95,40 @@ func (t *Token) ParseRefreshToken(refreshToken string) (map[string]any, error) {
 	}
 
 	return payload, nil
+}
+
+func (t *Token) VerifyTokenMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get the token from the header
+		accessToken := c.GetHeader("Authorization")
+		if accessToken == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":  "INVALID_INPUT",
+				"error": "Missing access token",
+			})
+			c.Abort()
+			return
+		}
+
+		accessToken = strings.Replace(accessToken, "Bearer ", "", 1)
+
+		// Verify the token
+		claims, err := t.VerifyToken(accessToken)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":  "INVALID_INPUT",
+				"error": err.Error(),
+			})
+			c.Abort()
+			return
+		}
+
+		// Set the user ID to the context
+		c.Set("user_id", claims["user_id"])
+		c.Set("role", claims["role"])
+
+		c.Next()
+	}
 }
 
 func NewToken(

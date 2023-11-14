@@ -5,15 +5,6 @@ import (
 	"time"
 )
 
-// Role represents the Role table in the database.
-type Role struct {
-	ID        int          `json:"id"`
-	Name      string       `json:"name"`
-	CreatedAt time.Time    `json:"created_at"`
-	UpdatedAt time.Time    `json:"updated_at"`
-	DeletedAt sql.NullTime `json:"deleted_at"`
-}
-
 // User represents the User table in the database.
 type User struct {
 	ID         int          `json:"id"`
@@ -23,7 +14,7 @@ type User struct {
 	IsVerified bool         `json:"is_verified"`
 	Gender     string       `json:"gender"`
 	Password   string       `json:"password"`
-	Role       string       `json:"role_id"`
+	Role       string       `json:"role"`
 	CreatedAt  time.Time    `json:"created_at"`
 	UpdatedAt  time.Time    `json:"updated_at"`
 	DeletedAt  sql.NullTime `json:"deleted_at"`

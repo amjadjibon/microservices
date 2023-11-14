@@ -89,5 +89,14 @@ func Router(repository repo.AuthRepo, jwtToken token.JwtToken, oauth2Config *goo
 	router.POST("/user/create", handlers.CreateUser)
 	router.POST("/user/login", handlers.LoginUser)
 	router.POST("/user/login/refresh", handlers.LoginRefresh)
+
+	// add router group for user to verify token
+	userGroup := router.Group("/api/user")
+	userGroup.Use(jwtToken.VerifyTokenMiddleware())
+	{
+		userGroup.GET("/:id", handlers.GetUser)
+		userGroup.GET("/", handlers.GetAllUser)
+	}
+
 	return router
 }

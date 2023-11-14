@@ -12,6 +12,7 @@ type UserRepo interface {
 	CreateUser(ctx context.Context, user *model.User) (*model.User, error)
 	GetUserById(ctx context.Context, userID int) (*model.User, error)
 	GetUserByUsername(ctx context.Context, username string) (*model.User, error)
+	GetAllUser(ctx context.Context) ([]*model.User, error)
 }
 
 type RoleRepo interface {
@@ -87,7 +88,18 @@ func (r *authRepo) GetUserById(ctx context.Context, userID int) (*model.User, er
 
 func (r *authRepo) GetUserByUsername(ctx context.Context, username string) (*model.User, error) {
 	query, args, err := r.db.Builder.
-		Select("*").
+		Select(
+			"id",
+			"username",
+			"name",
+			"email",
+			"is_verified",
+			"gender",
+			"password",
+			"role",
+			"created_at",
+			"updated_at",
+		).
 		From("auth_user").
 		Where("username = ?", username).
 		Where("deleted_at IS NULL").
@@ -102,7 +114,18 @@ func (r *authRepo) GetUserByUsername(ctx context.Context, username string) (*mod
 
 func (r *authRepo) GetAllUser(ctx context.Context) ([]*model.User, error) {
 	query, _, err := r.db.Builder.
-		Select("*").
+		Select(
+			"id",
+			"username",
+			"name",
+			"email",
+			"is_verified",
+			"gender",
+			"password",
+			"role",
+			"created_at",
+			"updated_at",
+		).
 		From("auth_user").
 		Where("deleted_at IS NULL").
 		ToSql()
@@ -129,7 +152,6 @@ func (r *authRepo) getUser(ctx context.Context, query string, args []interface{}
 			&user.Role,
 			&user.CreatedAt,
 			&user.UpdatedAt,
-			&user.DeletedAt,
 		); err != nil {
 		return nil, err
 	}
