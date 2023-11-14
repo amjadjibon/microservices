@@ -10,8 +10,8 @@ import (
 
 type AuthHandler interface {
 	CreateUser(c *gin.Context)
-	CreateRole(c *gin.Context)
 	LoginUser(c *gin.Context)
+	LoginRefresh(c *gin.Context)
 }
 
 type authHandler struct {

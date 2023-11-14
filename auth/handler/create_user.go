@@ -15,7 +15,7 @@ type CreateUserInput struct {
 	Name     string `json:"name" binding:"required"`
 	Email    string `json:"email" binding:"required"`
 	Gender   string `json:"gender" binding:"required"`
-	RoleID   int    `json:"role_id" binding:"required"`
+	Role     string `json:"role" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
@@ -48,7 +48,7 @@ func (a *authHandler) CreateUser(c *gin.Context) {
 		Email:      input.Email,
 		IsVerified: false,
 		Gender:     input.Gender,
-		RoleID:     input.RoleID,
+		Role:       input.Role,
 		Password:   pass,
 		CreatedAt:  time.Now().UTC(),
 		UpdatedAt:  time.Now().UTC(),

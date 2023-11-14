@@ -10,7 +10,6 @@ import (
 
 type UserRepo interface {
 	CreateUser(ctx context.Context, user *model.User) (*model.User, error)
-	CreateRole(ctx context.Context, role *model.Role) (*model.Role, error)
 	GetUserById(ctx context.Context, userID int) (*model.User, error)
 	GetUserByUsername(ctx context.Context, username string) (*model.User, error)
 }
@@ -43,7 +42,7 @@ func (r *authRepo) CreateUser(ctx context.Context, user *model.User) (*model.Use
 		"is_verified",
 		"gender",
 		"password",
-		"role_id",
+		"role",
 		"created_at",
 		"updated_at",
 	).Values(
@@ -53,7 +52,7 @@ func (r *authRepo) CreateUser(ctx context.Context, user *model.User) (*model.Use
 		user.IsVerified,
 		user.Gender,
 		user.Password,
-		user.RoleID,
+		user.Role,
 		time.Now(),
 		time.Now(),
 	).Suffix("RETURNING id").ToSql()
@@ -69,30 +68,6 @@ func (r *authRepo) CreateUser(ctx context.Context, user *model.User) (*model.Use
 
 	user.ID = userID
 	return user, nil
-}
-
-func (r *authRepo) CreateRole(ctx context.Context, role *model.Role) (*model.Role, error) {
-	sql, args, err := r.db.Builder.Insert("auth_role").Columns(
-		"name",
-		"created_at",
-		"updated_at",
-	).Values(
-		role.Name,
-		role.CreatedAt,
-		role.UpdatedAt,
-	).Suffix("RETURNING id").ToSql()
-	if err != nil {
-		return nil, err
-	}
-
-	var roleID int
-	err = r.db.Pool.QueryRow(ctx, sql, args...).Scan(&roleID)
-	if err != nil {
-		return nil, err
-	}
-
-	role.ID = roleID
-	return role, nil
 }
 
 func (r *authRepo) GetUserById(ctx context.Context, userID int) (*model.User, error) {
@@ -151,7 +126,7 @@ func (r *authRepo) getUser(ctx context.Context, query string, args []interface{}
 			&user.IsVerified,
 			&user.Gender,
 			&user.Password,
-			&user.RoleID,
+			&user.Role,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 			&user.DeletedAt,
@@ -179,7 +154,7 @@ func (r *authRepo) getUsers(ctx context.Context, query string) ([]*model.User, e
 			&user.IsVerified,
 			&user.Gender,
 			&user.Password,
-			&user.RoleID,
+			&user.Role,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 		); err != nil {

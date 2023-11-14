@@ -23,7 +23,7 @@ type User struct {
 	IsVerified bool         `json:"is_verified"`
 	Gender     string       `json:"gender"`
 	Password   string       `json:"password"`
-	RoleID     int          `json:"role_id"`
+	Role       string       `json:"role_id"`
 	CreatedAt  time.Time    `json:"created_at"`
 	UpdatedAt  time.Time    `json:"updated_at"`
 	DeletedAt  sql.NullTime `json:"deleted_at"`

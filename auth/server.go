@@ -85,8 +85,9 @@ func Router(repository repo.AuthRepo, jwtToken token.JwtToken, oauth2Config *goo
 			"status": "ok",
 		})
 	})
+
 	router.POST("/user/create", handlers.CreateUser)
-	router.POST("/role/create", handlers.CreateRole)
 	router.POST("/user/login", handlers.LoginUser)
+	router.POST("/user/login/refresh", handlers.LoginRefresh)
 	return router
 }

@@ -53,6 +53,27 @@ func (t *Token) GenerateRefreshToken(payload map[string]any) (string, error) {
 	return jwtToken.SignedString(t.SigningKey)
 }
 
+func (t *Token) ParseRefreshToken(refreshToken string) (map[string]any, error) {
+	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
+		return t.SigningKey, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, err
+	}
+
+	payload := token.Claims.(jwt.MapClaims)["payload"].(map[string]any)
+	if payload["type"] != RefreshTokenType {
+		return nil, err
+	}
+
+	return payload, nil
+}
+
 func NewToken(
 	algorithm,
 	signingKey,
