@@ -1,5 +1,7 @@
 package main
 
+import "github.com/amjadjibon/microservices/title/cmd"
+
 func main() {
-	// TODO: start the title server
+	cmd.Execute()
 }
